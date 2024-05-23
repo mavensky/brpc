@@ -20,10 +20,14 @@
 #include <bvar/bvar.h>
 #include <benchmark/benchmark.h>
 #include <thread>
+#include "bvar/multi_dimension.h"
+#include <list>
 
 bvar::LatencyRecorder g_latency_recorder("client");
 bvar::Adder<int> g_error_count("client_error_count");
-void Benchmark_Report(benchmark::State &state)
+static const std::list<std::string> labels = {"idc", "method", "status"};
+
+void Benchmark_BVar(benchmark::State &state)
 {
     while (state.KeepRunning())
     {
@@ -31,7 +35,20 @@ void Benchmark_Report(benchmark::State &state)
     }
 }
 
-BENCHMARK(Benchmark_Report)->Iterations(10000);
-BENCHMARK(Benchmark_Report);
+void Benchmark_MVar(benchmark::State &state)
+{
+    std::list<std::string> labels_value = {"bj", "get", "200"};
+    bvar::MultiDimension<bvar::Adder<uint32_t>> my_madder1("request_count_madder_uint32_t", labels);
+    while (state.KeepRunning())
+    {
+        bvar::Adder<uint32_t> *my_adder1 = my_madder1.get_stats(labels_value);
+        *my_adder1 << 2;
+    }
+}
+BENCHMARK(Benchmark_BVar)->Iterations(10000);
+BENCHMARK(Benchmark_BVar);
+
+BENCHMARK(Benchmark_MVar)->Iterations(10000);
+BENCHMARK(Benchmark_MVar);
 
 BENCHMARK_MAIN();
